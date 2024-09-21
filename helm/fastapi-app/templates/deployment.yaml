@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fastapi-app.fullname" . }}
+  labels:
+    {{- include "fastapi-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fastapi-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fastapi-app.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.servicePort }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fastapi-app-secret
+                  key: database-url
+            - name: DOMAIN
+              value: {{ .Values.domain }}
+            - name: API_VERSION
+              value: {{ .Values.apiVersion }}
+            - name: CORS_ORIGINS
+              value: {{ .Values.corsOrigins }}
+            - name: SERVICE_PORT
+              value: "{{ .Values.servicePort }}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
