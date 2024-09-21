@@ -4,10 +4,12 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+ENV = os.getenv("ENV", "development")  # Set ENV to "production" in your production environment
 
 def setup_security_headers(app: FastAPI, allowed_origin: str):
-    # Redirect HTTP to HTTPS
-    app.add_middleware(HTTPSRedirectMiddleware)
+    # Redirect HTTP to HTTPS in production only
+    if ENV == "production":
+        app.add_middleware(HTTPSRedirectMiddleware)
 
     # CORS configuration
     app.add_middleware(
@@ -24,7 +26,11 @@ def setup_security_headers(app: FastAPI, allowed_origin: str):
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        
+        # Apply strict security headers in production only
+        if ENV == "production":
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        
         response.headers['Content-Security-Policy'] = "default-src 'self';"
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response
