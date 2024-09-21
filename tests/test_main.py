@@ -6,9 +6,10 @@ client = TestClient(app)
 def test_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "version" in response.json()
-    assert "date" in response.json()
-    assert "kubernetes" in response.json()
+    data = response.json()
+    assert "version" in data
+    assert "date" in data
+    assert "kubernetes" in data
 
 def test_health():
     response = client.get("/health")

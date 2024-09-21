@@ -13,6 +13,6 @@ def test_security_headers():
     assert response.headers["Referrer-Policy"] == "no-referrer"
 
 def test_cors():
-    response = client.options("/v1/tools/lookup", headers={"Origin": "https://yourdomain.com"})
+    response = client.options("/v1/tools/lookup", headers={"Origin": "http://yourdomain.com"})
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "https://yourdomain.com"
+    assert response.headers["access-control-allow-origin"] == "http=://yourdomain.com"
