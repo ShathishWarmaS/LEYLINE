@@ -6,8 +6,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from app.models import Status, HealthStatus, ValidateIPRequest, ValidateIPResponse, Query
-from app.database import save_query, get_query_history
+from app.models import Status, HealthStatus, ValidateIPRequest, ValidateIPResponse, DomainQuery
+from app.database import save_query, get_query_history, connect, disconnect
 from app.security import setup_security_headers
 
 # Load environment variables from .env file
@@ -20,9 +20,6 @@ SERVICE_PORT = int(os.getenv("SERVICE_PORT", 3000))
 
 # Initialize the FastAPI app
 app = FastAPI()
-
-# Setup logging (assuming you have a setup_logging function)
-# setup_logging()
 
 # Prometheus instrumentation
 instrumentator = Instrumentator(
@@ -48,6 +45,14 @@ setup_security_headers(app, allowed_origin=f"https://{DOMAIN}")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
+@app.on_event("startup")
+async def startup():
+    await connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await disconnect()
+
 @app.get("/", response_model=Status, summary="Show current status", tags=["status"])
 async def query_status():
     return {
@@ -60,20 +65,19 @@ async def query_status():
 async def query_health():
     return {"status": "OK"}
 
-@app.get("/v1/history", response_model=Query, summary="List queries", tags=["history"])
+@app.get("/v1/history", response_model=list[DomainQuery], summary="List queries", tags=["history"])
 async def queries_history():
-    # Example data, replace with actual database logic
     history = await get_query_history()
-    return {"history": history}
+    return history
 
-@app.get("/v1/tools/lookup", response_model=Query, summary="Lookup domain", tags=["tools"])
+@app.get("/v1/tools/lookup", response_model=DomainQuery, summary="Lookup domain", tags=["tools"])
 @limiter.limit("5/minute")
 async def lookup_domain(request: Request, domain: str = Query(..., description="Domain name")):
     client_ip = request.client.host  # Extract the client IP from the request
     try:
         ipv4_addresses = socket.gethostbyname_ex(domain)[2]
         await save_query(domain, ipv4_addresses, client_ip)  # Pass the client IP to the database function
-        return Query(
+        return DomainQuery(
             addresses=[{"ip": ip, "queryID": 1} for ip in ipv4_addresses],
             client_ip=client_ip,
             created_time=int(os.getenv("CURRENT_DATE", 1663534325)),

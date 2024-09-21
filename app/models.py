@@ -18,7 +18,7 @@ class Address(BaseModel):
     ip: str
     queryID: int
 
-class Query(BaseModel):
+class DomainQuery(BaseModel):  # Renamed from Query to DomainQuery
     addresses: list[Address]
     client_ip: str
     created_time: int

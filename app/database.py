@@ -2,9 +2,13 @@ import os
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, TIMESTAMP, func, text
 from sqlalchemy.exc import ProgrammingError
 from databases import Database
+import logging
+from app.models import DomainQuery 
+
+logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/domain_lookup")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Create a Database instance
 database = Database(DATABASE_URL)
@@ -20,17 +24,23 @@ lookup_logs = Table(
     Column("domain", String),
     Column("ipv4_addresses", String),
     Column("timestamp", TIMESTAMP, server_default=func.now()),
-    Column("client_ip", String, nullable=True)  # Add the client_ip column to the table structure
+    Column("client_ip", String, nullable=True)
 )
 
 # Create an engine
 engine = create_engine(DATABASE_URL)
 
+# Connection functions
+async def connect():
+    await database.connect()
+
+async def disconnect():
+    await database.disconnect()
+
 # Function to ensure the client_ip column exists
 def ensure_client_ip_column_exists():
     with engine.connect() as connection:
         try:
-            # Execute the ALTER TABLE command to add the client_ip column if it does not exist
             connection.execute(text("""
                 DO $$ 
                 BEGIN 
@@ -61,5 +71,20 @@ async def save_query(domain: str, ipv4_addresses: list[str], client_ip: str):
 
 # Function to get query history from the database
 async def get_query_history(limit: int = 20):
-    query = lookup_logs.select().order_by(lookup_logs.c.timestamp.desc()).limit(limit)
-    return await database.fetch_all(query)
+    try:
+        query = lookup_logs.select().order_by(lookup_logs.c.timestamp.desc()).limit(limit)
+        result = await database.fetch_all(query)
+        print("Query history fetched successfully.")
+        # Transforming the result into DomainQuery format
+        return [
+            DomainQuery(
+                addresses=[{"ip": ip, "queryID": record["id"]} for ip in record["ipv4_addresses"].split(",")],
+                created_time=int(record["timestamp"].timestamp()),  # Assuming timestamp is a datetime object
+                queryID=record["id"],
+                client_ip=record["client_ip"],
+                domain=record["domain"]
+            ) for record in result
+        ]
+    except Exception as e:
+        print(f"Error fetching query history: {e}")
+        raise
