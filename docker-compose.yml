@@ -1,29 +1,22 @@
-version: "3.7"
-
 services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: shathishwarmas
+      POSTGRES_PASSWORD: newpassword
+      POSTGRES_DB: domain_lookup
+    ports:
+      - "5432:5432"
+
   fastapi-app:
     build: .
     ports:
       - "${SERVICE_PORT}:${SERVICE_PORT}"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://shathishwarmas:newpassword@postgres/domain_lookup
       - DOMAIN=${DOMAIN}
       - API_VERSION=${API_VERSION}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - SERVICE_PORT=${SERVICE_PORT}
     depends_on:
-      - db
-
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: domain_lookup
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+      - postgres

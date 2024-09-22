@@ -1,3 +1,5 @@
+# app/security.py
+
 import os
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -26,20 +28,11 @@ def setup_security_headers(app: FastAPI, allowed_origin: str):
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-
+        
         # Apply strict security headers in production only
         if ENV == "production":
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         
-        # Adjust CSP to allow Swagger UI and ReDoc resources, including data URIs
-        response.headers['Content-Security-Policy'] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https://fastapi.tiangolo.com https://cdn.redoc.ly; "
-            "frame-ancestors 'none'; "
-            "worker-src 'self' blob:"
-        )
+        response.headers['Content-Security-Policy'] = "default-src 'self'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://fastapi.tiangolo.com https://cdn.redoc.ly; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;"
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response

@@ -54,7 +54,7 @@ This project provides a REST API built with FastAPI, including several endpoints
 2. **Access the application**:
     - API: `http://localhost:3000`
     - Swagger UI: `http://localhost:3000/docs`
-
+    - Swagger : `http://localhost:3000/redocs`
 ### Kubernetes Deployment
 
 1. **Package the Helm chart**:
