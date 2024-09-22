@@ -7,6 +7,11 @@ services:
       POSTGRES_DB: domain_lookup
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shathishwarmas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   fastapi-app:
     build: .
@@ -14,9 +19,11 @@ services:
       - "${SERVICE_PORT}:${SERVICE_PORT}"
     environment:
       - DATABASE_URL=postgresql://shathishwarmas:newpassword@postgres/domain_lookup
+
       - DOMAIN=${DOMAIN}
       - API_VERSION=${API_VERSION}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - SERVICE_PORT=${SERVICE_PORT}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy

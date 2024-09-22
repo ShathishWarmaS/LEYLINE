@@ -75,8 +75,15 @@ async def queries_history():
 async def lookup_domain(request: Request, domain: str = Query(..., description="Domain name")):
     client_ip = request.client.host  # Extract the client IP from the request
     try:
+        # Perform DNS lookup for the domain
         ipv4_addresses = socket.gethostbyname_ex(domain)[2]
-        await save_query(domain, ipv4_addresses, client_ip)  # Pass the client IP to the database function
+        if not ipv4_addresses:
+            raise HTTPException(status_code=404, detail="No IP addresses found for the domain.")
+
+        # Save the query in the database
+        await save_query(domain, ipv4_addresses, client_ip)
+        
+        # Return the response
         return DomainQuery(
             addresses=[{"ip": ip, "queryID": 1} for ip in ipv4_addresses],
             client_ip=client_ip,
@@ -90,7 +97,7 @@ async def lookup_domain(request: Request, domain: str = Query(..., description="
 @app.post("/v1/tools/validate", response_model=ValidateIPResponse, summary="Simple IP validation", tags=["tools"])
 async def validate_ip(request: ValidateIPRequest):
     try:
-        socket.inet_aton(request.ip)
+        socket.inet_aton(request.ip)  # Validate the IP address format
         return {"status": True}
     except socket.error:
         return {"status": False}

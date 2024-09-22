@@ -42,7 +42,7 @@ This project provides a REST API built with FastAPI, including several endpoints
 4. **Run the application**:
     ```sh
     uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT}
-    ```
+     uvicorn app.main:app --reload --host 0.0.0.0 --port 3000```
 
 ### Docker
 
