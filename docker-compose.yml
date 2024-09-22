@@ -1,12 +1,16 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:14
     environment:
       POSTGRES_USER: shathishwarmas
       POSTGRES_PASSWORD: newpassword
-      POSTGRES_DB: domain_lookup
+      POSTGRES_DB: shathishwarmas
     ports:
       - "5432:5432"
+    volumes:
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U shathishwarmas"]
       interval: 10s
@@ -16,14 +20,9 @@ services:
   fastapi-app:
     build: .
     ports:
-      - "${SERVICE_PORT}:${SERVICE_PORT}"
+      - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://shathishwarmas:newpassword@postgres/domain_lookup
-
-      - DOMAIN=${DOMAIN}
-      - API_VERSION=${API_VERSION}
-      - CORS_ORIGINS=${CORS_ORIGINS}
-      - SERVICE_PORT=${SERVICE_PORT}
+      - DATABASE_URL=postgresql://shathishwarmas:newpassword@postgres/shathishwarmas
     depends_on:
       postgres:
         condition: service_healthy
