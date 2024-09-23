@@ -1,6 +1,8 @@
 import os
 import socket
-from fastapi import FastAPI, HTTPException, Query, Request
+import secrets 
+from fastapi import FastAPI, HTTPException, Query, Request, Depends, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -17,22 +19,40 @@ load_dotenv()
 DOMAIN = os.getenv("DOMAIN", "localhost")
 API_VERSION = os.getenv("API_VERSION", "0.1.0")
 SERVICE_PORT = int(os.getenv("SERVICE_PORT", 3000))
+ENABLE_METRICS = os.getenv("ENABLE_METRICS", "false").lower() == "true"
+METRICS_USERNAME = os.getenv("METRICS_USERNAME", "admin")
+METRICS_PASSWORD = os.getenv("METRICS_PASSWORD", "password")
 
 # Initialize the FastAPI app
 app = FastAPI()
 
+# Basic authentication for metrics
+security = HTTPBasic()
+
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, METRICS_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, METRICS_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials
+
 # Prometheus instrumentation
-instrumentator = Instrumentator(
-    should_group_status_codes=False,
-    should_ignore_untemplated=True,
-    should_respect_env_var=True,
-    should_instrument_requests_inprogress=True,
-    excluded_handlers=[".*admin.*", "/metrics"],
-    env_var_name="ENABLE_METRICS",
-    inprogress_name="inprogress",
-    inprogress_labels=True,
-)
-instrumentator.instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
+if ENABLE_METRICS:
+    instrumentator = Instrumentator(
+        should_group_status_codes=False,
+        should_ignore_untemplated=True,
+        should_respect_env_var=True,
+        should_instrument_requests_inprogress=True,
+        excluded_handlers=[".*admin.*", "/metrics"],
+        env_var_name="ENABLE_METRICS",
+        inprogress_name="inprogress",
+        inprogress_labels=True,
+    )
+    instrumentator.instrument(app).expose(app, include_in_schema=False, endpoint="/metrics", dependencies=[Depends(authenticate)])
 
 # Security middleware for headers and host validation
 app.add_middleware(
