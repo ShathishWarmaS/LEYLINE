@@ -3,35 +3,20 @@ kind: Deployment
 metadata:
   name: {{ include "fastapi-app.fullname" . }}
   labels:
-    {{- include "fastapi-app.labels" . | nindent 4 }}
+    app: {{ include "fastapi-app.name" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "fastapi-app.selectorLabels" . | nindent 6 }}
+      app: {{ include "fastapi-app.name" . }}
   template:
     metadata:
       labels:
-        {{- include "fastapi-app.selectorLabels" . | nindent 8 }}
+        app: {{ include "fastapi-app.name" . }}
     spec:
       containers:
-        - name: {{ .Chart.Name }}
+        - name: fastapi-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: {{ .Values.servicePort }}
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: fastapi-app-secret
-                  key: database-url
-            - name: DOMAIN
-              value: {{ .Values.domain }}
-            - name: API_VERSION
-              value: {{ .Values.apiVersion }}
-            - name: CORS_ORIGINS
-              value: {{ .Values.corsOrigins }}
-            - name: SERVICE_PORT
-              value: "{{ .Values.servicePort }}"
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            - containerPort: 3000
+          resources: {{- toYaml .Values.resources | nindent 12 }}

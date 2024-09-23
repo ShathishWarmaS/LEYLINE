@@ -33,6 +33,12 @@ def setup_security_headers(app: FastAPI, allowed_origin: str):
         if ENV == "production":
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         
-        response.headers['Content-Security-Policy'] = "default-src 'self'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://fastapi.tiangolo.com https://cdn.redoc.ly; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;"
+        response.headers['Content-Security-Policy'] = (
+    "default-src 'self'; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' https://fastapi.tiangolo.com https://cdn.redoc.ly; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
+)
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response

@@ -1,32 +1,12 @@
-replicaCount: 3
+replicaCount: 1
 
 image:
-  repository: your-docker-repo/fastapi-app
-  pullPolicy: Always
-  tag: "0.1.0"
+  repository: shathishwarmasqubrid/fastapi
+  pullPolicy: IfNotPresent
+  tag: "latest"
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
 
-ingress:
-  enabled: false
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 250m
-    memory: 256Mi
-
-domain: yourdomain.com
-apiVersion: "0.1.0"
-servicePort: 3000
-corsOrigins: "https://yourdomain.com,https://anotherdomain.com"
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
+resources: {}

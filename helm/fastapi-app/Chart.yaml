@@ -1,6 +1,5 @@
 apiVersion: v2
 name: fastapi-app
-description: A Helm chart for FastAPI application
-type: application
+description: A Helm chart for FastAPI
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "1.0"
