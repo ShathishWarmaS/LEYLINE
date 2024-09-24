@@ -1,5 +1,6 @@
 import os
 import socket
+from datetime import datetime
 import secrets 
 from fastapi import FastAPI, HTTPException, Query, Request, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -76,7 +77,7 @@ async def shutdown():
 @app.get("/", response_model=Status, summary="Show current status", tags=["status"])
 async def query_status():
     return {
-        "date": int(os.getenv("CURRENT_DATE", 1663534325)),  # Example fixed date, can be dynamic
+        "date": int(datetime.utcnow().timestamp()),  # Current UTC timestamp
         "kubernetes": os.getenv("KUBERNETES_SERVICE_HOST") is not None,
         "version": API_VERSION
     }

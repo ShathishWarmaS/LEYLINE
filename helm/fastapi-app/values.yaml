@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: shathishwarmasqubrid/fastapi
+  repository: shathishwarma/fastapi
   pullPolicy: IfNotPresent
   tag: "latest"
 
