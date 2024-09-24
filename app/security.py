@@ -6,7 +6,9 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
-ENV = os.getenv("ENV", "development")  # Set ENV to "production" in your production environment
+# Set ENV to "production" in your production environment
+ENV = os.getenv("ENV", "development")
+
 
 def setup_security_headers(app: FastAPI, allowed_origin: str):
     # Redirect HTTP to HTTPS in production only
@@ -28,17 +30,16 @@ def setup_security_headers(app: FastAPI, allowed_origin: str):
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-        
+
         # Apply strict security headers in production only
         if ENV == "production":
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-        
+
         response.headers['Content-Security-Policy'] = (
-    "default-src 'self'; "
-    "font-src 'self' https://fonts.gstatic.com; "
-    "img-src 'self' https://fastapi.tiangolo.com https://cdn.redoc.ly; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
-)
+            "default-src 'self'; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' https://fastapi.tiangolo.com https://cdn.redoc.ly; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;")
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response

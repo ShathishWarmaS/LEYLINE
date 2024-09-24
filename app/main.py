@@ -1,7 +1,7 @@
 import os
 import socket
 from datetime import datetime
-import secrets 
+import secrets
 from fastapi import FastAPI, HTTPException, Query, Request, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from dotenv import load_dotenv
@@ -30,9 +30,12 @@ app = FastAPI()
 # Basic authentication for metrics
 security = HTTPBasic()
 
+
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, METRICS_USERNAME)
-    correct_password = secrets.compare_digest(credentials.password, METRICS_PASSWORD)
+    correct_username = secrets.compare_digest(
+        credentials.username, METRICS_USERNAME)
+    correct_password = secrets.compare_digest(
+        credentials.password, METRICS_PASSWORD)
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,6 +43,7 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
             headers={"WWW-Authenticate": "Basic"},
         )
     return credentials
+
 
 # Prometheus instrumentation
 if ENABLE_METRICS:
@@ -53,7 +57,12 @@ if ENABLE_METRICS:
         inprogress_name="inprogress",
         inprogress_labels=True,
     )
-    instrumentator.instrument(app).expose(app, include_in_schema=False, endpoint="/metrics", dependencies=[Depends(authenticate)])
+    instrumentator.instrument(app).expose(
+        app,
+        include_in_schema=False,
+        endpoint="/metrics",
+        dependencies=[
+            Depends(authenticate)])
 
 # Security middleware for headers and host validation
 app.add_middleware(
@@ -66,15 +75,21 @@ setup_security_headers(app, allowed_origin=f"https://{DOMAIN}")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
+
 @app.on_event("startup")
 async def startup():
     await connect()
+
 
 @app.on_event("shutdown")
 async def shutdown():
     await disconnect()
 
-@app.get("/", response_model=Status, summary="Show current status", tags=["status"])
+
+@app.get("/",
+         response_model=Status,
+         summary="Show current status",
+         tags=["status"])
 async def query_status():
     return {
         "date": int(datetime.utcnow().timestamp()),  # Current UTC timestamp
@@ -82,28 +97,39 @@ async def query_status():
         "version": API_VERSION
     }
 
-@app.get("/health", response_model=HealthStatus, summary="Show health status", tags=["health"])
+
+@app.get("/health", response_model=HealthStatus,
+         summary="Show health status", tags=["health"])
 async def query_health():
     return {"status": "OK"}
 
-@app.get("/v1/history", response_model=list[DomainQuery], summary="List queries", tags=["history"])
+
+@app.get("/v1/history",
+         response_model=list[DomainQuery],
+         summary="List queries",
+         tags=["history"])
 async def queries_history():
     history = await get_query_history()
     return history
 
-@app.get("/v1/tools/lookup", response_model=DomainQuery, summary="Lookup domain", tags=["tools"])
+
+@app.get("/v1/tools/lookup", response_model=DomainQuery,
+         summary="Lookup domain", tags=["tools"])
 @limiter.limit("5/minute")
-async def lookup_domain(request: Request, domain: str = Query(..., description="Domain name")):
+async def lookup_domain(request: Request,
+                        domain: str = Query(...,
+                                            description="Domain name")):
     client_ip = request.client.host  # Extract the client IP from the request
     try:
         # Perform DNS lookup for the domain
         ipv4_addresses = socket.gethostbyname_ex(domain)[2]
         if not ipv4_addresses:
-            raise HTTPException(status_code=404, detail="No IP addresses found for the domain.")
+            raise HTTPException(status_code=404,
+                                detail="No IP addresses found for the domain.")
 
         # Save the query in the database
         await save_query(domain, ipv4_addresses, client_ip)
-        
+
         # Return the response
         return DomainQuery(
             addresses=[{"ip": ip, "queryID": 1} for ip in ipv4_addresses],
@@ -115,7 +141,9 @@ async def lookup_domain(request: Request, domain: str = Query(..., description="
     except socket.gaierror:
         raise HTTPException(status_code=404, detail="Domain not found")
 
-@app.post("/v1/tools/validate", response_model=ValidateIPResponse, summary="Simple IP validation", tags=["tools"])
+
+@app.post("/v1/tools/validate", response_model=ValidateIPResponse,
+          summary="Simple IP validation", tags=["tools"])
 async def validate_ip(request: ValidateIPRequest):
     try:
         socket.inet_aton(request.ip)  # Validate the IP address format

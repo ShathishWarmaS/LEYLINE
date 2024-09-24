@@ -25,7 +25,8 @@ lookup_logs = Table(
     Column("id", Integer, primary_key=True),
     Column("domain", String),
     Column("ipv4_addresses", String),
-    Column("ip_address", String, nullable=False),  # Ensure this column exists and is not nullable
+    # Ensure this column exists and is not nullable
+    Column("ip_address", String, nullable=False),
     Column("timestamp", TIMESTAMP, server_default=func.now()),
     Column("client_ip", String, nullable=True)
 )
@@ -34,23 +35,28 @@ lookup_logs = Table(
 engine = create_engine(DATABASE_URL)
 
 # Connection functions
+
+
 async def connect():
     await database.connect()
+
 
 async def disconnect():
     await database.disconnect()
 
 # Function to ensure the client_ip column exists
+
+
 def ensure_client_ip_column_exists():
     with engine.connect() as connection:
         try:
             connection.execute(text("""
-                DO $$ 
-                BEGIN 
+                DO $$
+                BEGIN
                     IF NOT EXISTS (
-                        SELECT 1 
-                        FROM information_schema.columns 
-                        WHERE table_name='lookup_logs' 
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_name='lookup_logs'
                         AND column_name='client_ip'
                     ) THEN
                         ALTER TABLE lookup_logs ADD COLUMN client_ip VARCHAR;
@@ -60,38 +66,48 @@ def ensure_client_ip_column_exists():
         except ProgrammingError as e:
             print(f"An error occurred: {e}")
 
+
 # Ensure the client_ip column exists
 ensure_client_ip_column_exists()
 
 # Function to save a query in the database
+
+
 async def save_query(domain: str, ipv4_addresses: list[str], client_ip: str):
-    ip_address = ipv4_addresses[0] if ipv4_addresses else None  # Get the first IP or None
+    # Get the first IP or None
+    ip_address = ipv4_addresses[0] if ipv4_addresses else None
     query = lookup_logs.insert().values(
         domain=domain,
         ipv4_addresses=",".join(ipv4_addresses),
         ip_address=ip_address,  # Ensure this is included
         client_ip=client_ip
     )
-    
+
     # Logging the values being saved
-    logging.info(f"Saving query with domain: {domain}, ipv4_addresses: {ipv4_addresses}, ip_address: {ip_address}, client_ip: {client_ip}")
-    
+    logging.info(
+        f"Saving query with domain: {domain}, ipv4_addresses: {ipv4_addresses}, ip_address: {ip_address}, client_ip: {client_ip}")
+
     await database.execute(query)
 
 # Function to get query history from the database
+
+
 async def get_query_history(limit: int = 20):
     try:
-        query = lookup_logs.select().order_by(lookup_logs.c.timestamp.desc()).limit(limit)
+        query = lookup_logs.select().order_by(
+            lookup_logs.c.timestamp.desc()).limit(limit)
         result = await database.fetch_all(query)
         logging.info("Query history fetched successfully.")
-        
+
         return [
             DomainQuery(
                 addresses=[
                     {"ip": ip, "queryID": record["id"]}
-                    for ip in (record["ipv4_addresses"] or "").split(",")  # Handle None
+                    # Handle None
+                    for ip in (record["ipv4_addresses"] or "").split(",")
                 ],
-                created_time=int(record["timestamp"].timestamp()),  # Assuming timestamp is a datetime object
+                # Assuming timestamp is a datetime object
+                created_time=int(record["timestamp"].timestamp()),
                 queryID=record["id"],
                 client_ip=record["client_ip"],
                 domain=record["domain"]
